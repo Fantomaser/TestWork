@@ -39,18 +39,16 @@ func Pong(c *gin.Context) {
 func makeText(c *gin.Context) {
 
 	tmp := struct {
-		mesg string `json: "msg"`
+		Msg string `json: "msg"`
 	}{}
 
 	c.BindJSON(&tmp)
 
-	fmt.Println("First", tmp.mesg)
-	str := []byte(tmp.mesg)
+	str := []byte(tmp.Msg)
 
 	if len(str) <= 0 {
 		return
 	}
-	fmt.Println("Convert", str)
 
 	btMask := make([]byte, 8)
 
@@ -65,7 +63,7 @@ func makeText(c *gin.Context) {
 	user := User{btMask, string(str), "/GetText"}
 	userDB = append(userDB, user)
 
-	c.JSON(200, gin.H{"user": "5rere3rerwrwrwerwr"})
+	c.JSON(200, gin.H{"user": user})
 }
 
 func LiberalCORS(c *gin.Context) {
