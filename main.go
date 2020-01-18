@@ -14,7 +14,7 @@ var port string = ":9090"
 var userDB []User
 
 type User struct {
-	Key     []byte
+	Key     string
 	Message string
 	Adres   string
 }
@@ -23,17 +23,11 @@ func main() {
 
 	r := gin.Default()
 	r.Use(LiberalCORS)
-	r.GET("/ping", Pong)
 	r.POST("/makeText", makeText)
-	r.Run(":8080") // listen and serve on 0.0.0.0:8080 (for windows "localhost:8080")
+	r.POST("/getText", getText)
+	r.Run(":8080")
 
 	fmt.Println("ALL is Ok")
-}
-
-func Pong(c *gin.Context) {
-	c.JSON(200, gin.H{
-		"message": "pong",
-	})
 }
 
 func makeText(c *gin.Context) {
@@ -53,17 +47,23 @@ func makeText(c *gin.Context) {
 	btMask := make([]byte, 8)
 
 	for i, _ := range btMask {
-		btMask[i] = byte(rand.Int31n(126))
+		btMask[i] = byte(rand.Int63() % 126)
 	}
 
 	for i, _ := range []byte(str) {
 		str[i] = str[i] ^ btMask[i%len(btMask)]
 	}
 
-	user := User{btMask, string(str), "/GetText"}
+	user := User{string(btMask), string(str), "/GetText"}
 	userDB = append(userDB, user)
 
+	fmt.Println("Send: ", user)
+
 	c.JSON(200, gin.H{"user": user})
+}
+
+func getText(c *gin.Context) {
+
 }
 
 func LiberalCORS(c *gin.Context) {

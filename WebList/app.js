@@ -3,8 +3,11 @@ var app = new Vue({
     data: {
       message: null,
       btnName: 'Сгенерировать',
-      OutpKeyMess: 'Ключ',
-      OutpURLMess: 'Адрес' 
+
+      userInfo: null,
+
+      OutpKeyMess: '0',
+      OutpURLMess: '/' 
     },
     methods:{
       CheckText: function(){
@@ -12,7 +15,9 @@ var app = new Vue({
               // GET /someUrl
         this.$http.post('http://localhost:8080/makeText', {msg : this.message}).then(res => {
             console.log('Generation message', res)
-
+            this.userInfo = res.body.user
+            this.OutpKeyMess = this.userInfo.Key
+            this.OutpURLMess = this.userInfo.Adres
         }, res => {
             console.log("SendError!!!!!!", res)
         });
