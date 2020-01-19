@@ -2,16 +2,15 @@ package main
 
 import (
 	"fmt"
-	"math/rand"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 
 )
 
-var port string = ":9090"
+var port string = ":8080"
 var takeMSGAdr string = "/GetText"
-var userDB []User
+var UserDB []User
 
 type User struct {
 	Key     string
@@ -25,7 +24,10 @@ func main() {
 	r.Use(LiberalCORS)
 	r.POST("/makeText", makeText)
 	r.POST("/getText", getText)
-	r.Run(":8080")
+
+	go GmailStream()
+
+	r.Run(port)
 
 	fmt.Println("ALL is Ok")
 }
@@ -44,26 +46,10 @@ func makeText(c *gin.Context) {
 		return
 	}
 
-	btMask := criptKey()
+	msg, key := Encrypt(str)
 
-	for it := 0; len(userDB) != 0; it++ {
-		if userDB[it].Key == string(btMask) {
-			btMask = criptKey()
-			it = 0
-		}
-
-		if it == (len(userDB) - 1) {
-			break
-		}
-
-	}
-
-	for i, _ := range []byte(str) {
-		str[i] = str[i] ^ btMask[i%len(btMask)]
-	}
-
-	user := User{string(btMask), string(str), takeMSGAdr}
-	userDB = append(userDB, user)
+	user := User{string(key), string(msg), takeMSGAdr}
+	UserDB = append(UserDB, user)
 
 	fmt.Println("Send: ", user)
 
@@ -77,26 +63,13 @@ func getText(c *gin.Context) {
 
 	c.BindJSON(&tmp)
 
-	var Userid int = -1
+	msg, err := Decrypt([]byte(tmp.Key))
 
-	for i, _ := range userDB {
-		if userDB[i].Key == tmp.Key {
-			Userid = i
-			break
-		}
-	}
-
-	if Userid == -1 {
+	if err != nil {
 		c.JSON(200, gin.H{"status": "deny"})
 	}
 
-	str := []byte(userDB[Userid].Message)
-
-	for i, _ := range str {
-		str[i] = str[i] ^ tmp.Key[i%len(tmp.Key)]
-	}
-
-	c.JSON(200, gin.H{"status": "pass", "message": string(str)})
+	c.JSON(200, gin.H{"status": "pass", "message": string(msg)})
 
 }
 
@@ -111,15 +84,4 @@ func LiberalCORS(c *gin.Context) {
 		c.AbortWithStatus(http.StatusOK)
 	}
 
-}
-
-func criptKey() []byte {
-
-	btMask := make([]byte, 8)
-
-	for i, _ := range btMask {
-		btMask[i] = byte(rand.Int63() % 126)
-	}
-
-	return btMask
 }
