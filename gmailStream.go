@@ -1,13 +1,13 @@
 package main
 
 import (
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
+	"strings"
 
 	"golang.org/x/net/context"
 	"golang.org/x/oauth2"
@@ -71,38 +71,37 @@ func saveToken(path string, token *oauth2.Token) {
 	json.NewEncoder(f).Encode(token)
 }
 
-type Message struct {
-	Id       string `json: "id"`
-	LabelIds string `json: "labelIds"`
-	Raw      []byte `json: "raw"`
-}
+var user string = "me"
+var srv *gmail.Service
 
-/*type Messages struct {
-	Messages           string `json: "messages"`
-	NextPageToken      string `json: "nextPageToken"`
-	ResultSizeEstimate []byte `json: "resultSizeEstimate"`
-}*/
-
-//GmailStream ... Call gmail stream
 func GmailStream() {
 	b, err := ioutil.ReadFile("credentials.json")
 	if err != nil {
 		log.Fatalf("Unable to read client secret file: %v", err)
 	}
 
-	// If modifying these scopes, delete your previously saved token.json.
 	config, err := google.ConfigFromJSON(b, gmail.GmailReadonlyScope)
 	if err != nil {
 		log.Fatalf("Unable to parse client secret file to config: %v", err)
 	}
 	client := getClient(config)
 
-	srv, err := gmail.New(client)
+	srv, err = gmail.New(client)
+
 	if err != nil {
 		log.Fatalf("Unable to retrieve Gmail client: %v", err)
 	}
 
-	user := "me"
+	CheckLetter()
+
+	return
+}
+
+//CheckLetter проверка на новые письма
+func CheckLetter() {
+
+	fmt.Println("Check message...")
+
 	/*r, err := srv.Users.Labels.List(user).Do()
 	if err != nil {
 		log.Fatalf("Unable to retrieve labels: %v", err)
@@ -118,44 +117,35 @@ func GmailStream() {
 
 	//MSGList := Messages{}
 
-	res, _ := srv.Users.Messages.List(user).Q("subject:Make message").Do()
+	res, _ := srv.Users.Messages.List(user).Q("subject:Make message is:unread").Do()
 
 	tok := res.Messages
-	i := res.ResultSizeEstimate
-	//Msg := MSGList[]
+	count := res.ResultSizeEstimate
 
-	for _, l := range res.Messages {
-		fmt.Println(l, " -- ", l.Id)
-		fmt.Println(l.Raw)
-	}
+	for count > 0 {
+		msg, _ := srv.Users.Messages.Get(user, tok[count-1].Id).Format("full").Do()
 
-	for i > 0 {
-		//tok[i].Header.Clone().Get()
-		fmt.Println(i, " ----  ", tok[i-1].Header.Get(tok[i-1].Id), "\n")
-		msg, _ := srv.Users.Messages.Get(user, tok[i-1].Id).Format("raw").Do()
+		Rawadr := []byte(msg.Payload.Headers[7].Value)
 
-		//dec := new(mime.WordDecoder)
-		///var RawURLEncoding = URLEncoding.WithPadding(NoPadding)
-		fileData, err := base64.StdEncoding.DecodeString(msg.Raw)
-		fileData2, err := base64.StdEncoding.DecodeString(string(fileData))
-		if err != nil {
-			fmt.Println( /*"problem", err*/ )
+		start := strings.LastIndexAny(string(Rawadr), "<")
+		end := strings.LastIndexAny(string(Rawadr), ">")
+
+		for i := len(Rawadr) - 1; i > end; i-- {
+			Rawadr = Rawadr[:len(Rawadr)-2]
 		}
-		fmt.Println(string(fileData))
-		fmt.Println("=================")
-		fmt.Println(string(fileData2))
-		fmt.Println("=================================")
 
-		fmt.Println("=================")
-		str := "bJGfmMjrfapK/hQDUFcm9pQ2TZWBNx6LTvIkDapInKS4aS38e09vALBXXHUzK/VXaygzf0jxotc+RO7f7LixC/4Xr5gUGsZbLeZ88kgNsPub+7tDhehetMgsg+T2qoZg673mcXOKOvRkAd4T/o7GG2d8MfsGfOzTEd8kCcp32AZ8GaTbFkBm1ZrAVZ/tIA1eS/ZrgOvCZf8bGEOeoc1UT9oxAgcaXQ9IKnTzNIuGcRedbw98GHCUWMHdivfn4mhL4z+v+96elzsR82s3s3abwNBJeAKuraKPBgsnby0q/kbtJv3eaMiX/x1OGsWpEifgcCKe1dHNHMRvjt27E5vmVA=="
-		fileData3, err := base64.StdEncoding.DecodeString(str)
-		fmt.Println(string(fileData3))
-		fmt.Println("=================================")
+		for i := 0; i < start; i++ {
+			Rawadr = Rawadr[1:]
+		}
+		Rawadr = Rawadr[1 : len(Rawadr)-1]
 
-		fmt.Println("\n\n\n\n", msg.Header.Get(tok[i-1].Id), "\n\n\n\n")
+		fmt.Println("Message:")
 
-		//fmt.Println(msg.Raw)
-		i--
+		fmt.Println(msg.Snippet)
+
+		fmt.Println("From: ", string(Rawadr))
+
+		fmt.Println("----------------------------------------------------------------------")
+		count--
 	}
-	return
 }
