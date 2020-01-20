@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -132,7 +133,28 @@ func GmailStream() {
 		//tok[i].Header.Clone().Get()
 		fmt.Println(i, " ----  ", tok[i-1].Header.Get(tok[i-1].Id), "\n")
 		msg, _ := srv.Users.Messages.Get(user, tok[i-1].Id).Format("raw").Do()
-		fmt.Println(msg.Raw)
+
+		//dec := new(mime.WordDecoder)
+		///var RawURLEncoding = URLEncoding.WithPadding(NoPadding)
+		fileData, err := base64.StdEncoding.DecodeString(msg.Raw)
+		fileData2, err := base64.StdEncoding.DecodeString(string(fileData))
+		if err != nil {
+			fmt.Println( /*"problem", err*/ )
+		}
+		fmt.Println(string(fileData))
+		fmt.Println("=================")
+		fmt.Println(string(fileData2))
+		fmt.Println("=================================")
+
+		fmt.Println("=================")
+		str := "bJGfmMjrfapK/hQDUFcm9pQ2TZWBNx6LTvIkDapInKS4aS38e09vALBXXHUzK/VXaygzf0jxotc+RO7f7LixC/4Xr5gUGsZbLeZ88kgNsPub+7tDhehetMgsg+T2qoZg673mcXOKOvRkAd4T/o7GG2d8MfsGfOzTEd8kCcp32AZ8GaTbFkBm1ZrAVZ/tIA1eS/ZrgOvCZf8bGEOeoc1UT9oxAgcaXQ9IKnTzNIuGcRedbw98GHCUWMHdivfn4mhL4z+v+96elzsR82s3s3abwNBJeAKuraKPBgsnby0q/kbtJv3eaMiX/x1OGsWpEifgcCKe1dHNHMRvjt27E5vmVA=="
+		fileData3, err := base64.StdEncoding.DecodeString(str)
+		fmt.Println(string(fileData3))
+		fmt.Println("=================================")
+
+		fmt.Println("\n\n\n\n", msg.Header.Get(tok[i-1].Id), "\n\n\n\n")
+
+		//fmt.Println(msg.Raw)
 		i--
 	}
 	return
